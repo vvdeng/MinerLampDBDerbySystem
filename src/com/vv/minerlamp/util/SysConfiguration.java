@@ -12,7 +12,7 @@ public class SysConfiguration {
 	public static Integer dbPort;
 	public static String dbUserName;
 	public static String dbPwd;
-	public static String dbName="minerlamp";
+	public static String dbName="";
 	public static String backupFileName="智能管理系统数据备份.dat";
 	
 	public static void init() {
@@ -22,6 +22,8 @@ public class SysConfiguration {
 		parse(dbUrl);
 		dbUserName = dbProps.get("hibernate.connection.username").toString();
 		dbPwd = dbProps.get("hibernate.connection.password").toString();
+		parseDbName(dbUrl);
+		System.out.println("dbName="+dbName);
 		
 	}
 
@@ -32,6 +34,16 @@ public class SysConfiguration {
 		if(matcher.find()){
 			dbIp=matcher.group(1);
 			dbPort=new Integer(matcher.group(2));
+		
+		}
+	}
+	public static void parseDbName( String url) {
+		Pattern pattern = Pattern.compile("jdbc:derby:(.*)");
+		Matcher matcher=pattern.matcher(url);
+		
+		if(matcher.find()){
+			dbName=matcher.group(1);
+		
 		
 		}
 	}

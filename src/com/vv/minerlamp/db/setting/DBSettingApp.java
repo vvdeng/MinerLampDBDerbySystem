@@ -13,6 +13,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -43,8 +44,8 @@ import com.vv.minerlamp.util.Util;
 
 public class DBSettingApp extends JFrame {
 	private static final String driver = "org.apache.derby.jdbc.EmbeddedDriver";
-	private String dbPos = "d:/minerlampdb";
-	private String backupDbPos = "d:/dbbackups/";
+	
+	private String backupDbPos;
 	private static String backupsqlstmt = "CALL SYSCS_UTIL.SYSCS_BACKUP_DATABASE(?)";
 
 	public DBSettingApp() {
@@ -130,20 +131,33 @@ public class DBSettingApp extends JFrame {
 
 				@Override
 				public void actionPerformed(ActionEvent e) {
-					int selection = JOptionPane.showConfirmDialog(
-							DBSettingApp.this, "确定要备份数据库吗", "提示",
-							JOptionPane.YES_NO_OPTION);
+					JFileChooser pathChooser = new JFileChooser();
+					pathChooser
+							.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+					int flag = pathChooser.showSaveDialog(DBSettingApp.this);
+					if (flag == JFileChooser.APPROVE_OPTION) {
 
-					if (selection == JOptionPane.YES_OPTION) {
+						File selDir = pathChooser.getSelectedFile();
+						System.out.println("backup path="
+								+ selDir.getAbsolutePath());
 						infoList.clear();
 						infoList.add("备份数据库");
+						if (selDir.listFiles() != null
+								&& selDir.listFiles().length > 0) {
+							JOptionPane.showMessageDialog(DBSettingApp.this,
+									"请选择一个空目录");
+							infoList.add("请选择一个空目录！");
+							showInfoMsg();
 
-						showInfoMsg();
-						backupDb();
-						showInfoMsg();
+						} else {
+							backupDbPos = selDir.getAbsolutePath();
+
+							showInfoMsg();
+							backupDb();
+							showInfoMsg();
+						}
 
 					}
-
 				}
 			});
 			JButton restoreBtn = new JButton("还原数据库");
@@ -151,17 +165,68 @@ public class DBSettingApp extends JFrame {
 
 				@Override
 				public void actionPerformed(ActionEvent e) {
-					int selection = JOptionPane.showConfirmDialog(
-							DBSettingApp.this, "确定要还原数据库吗", "提示",
-							JOptionPane.YES_NO_OPTION);
-					//考虑是否添加连接测试
-					if (selection == JOptionPane.YES_OPTION) {
+					boolean check = false;
+					JFileChooser pathChooser = new JFileChooser();
+					pathChooser
+							.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+					int flag = pathChooser.showSaveDialog(DBSettingApp.this);
+					if (flag == JFileChooser.APPROVE_OPTION) {
+
+						File selDir = pathChooser.getSelectedFile();
+						System.out.println("backup path="
+								+ selDir.getAbsolutePath());
 						infoList.clear();
 						infoList.add("还原数据库");
+						if (selDir.listFiles() == null
+								|| selDir.listFiles().length == 0) {
+							JOptionPane.showMessageDialog(DBSettingApp.this,
+									"不能为空目录");
+							infoList.add("不能为空目录！");
+							showInfoMsg();
 
-						showInfoMsg();
-						backupDb();
-						showInfoMsg();
+						} else if (selDir.listFiles().length == 1) {
+							File subFile = selDir.listFiles()[0];
+							if (subFile.isDirectory()) {
+								File[] bkFiles = subFile.listFiles();
+								for (File file : bkFiles) {
+									if (file.getName().endsWith("")) {
+										check = true;
+										break;
+									}
+								}
+								if (check == true) {
+									backupDbPos = subFile.getAbsolutePath();
+
+								}
+
+							}
+
+						} else {
+							File[] bkFiles = selDir.listFiles();
+							for (File file : bkFiles) {
+								if (file.getName().endsWith("")) {
+									check = true;
+									break;
+								}
+							}
+							if (check == true) {
+								backupDbPos = selDir.getAbsolutePath();
+
+							}
+
+						}
+						if (check == true) {
+							System.out.println(" restore from file:"
+									+ backupDbPos);
+
+							showInfoMsg();
+							restoreDb();
+							showInfoMsg();
+						}
+						else{
+							infoList.add("备份文件格式不正确");
+							showInfoMsg();
+						}
 
 					}
 
@@ -177,7 +242,7 @@ public class DBSettingApp extends JFrame {
 
 			infoLabel.setHorizontalAlignment(SwingConstants.LEFT);
 			infoLabel.setVerticalAlignment(SwingConstants.TOP);
-			infoLabel.setPreferredSize(new Dimension(100, 100));
+			infoLabel.setPreferredSize(new Dimension(150, 100));
 			// infoLabel.setBorder(BorderFactory.createEtchedBorder());
 
 			infoPanel.add(infoLabel);
@@ -458,10 +523,10 @@ public class DBSettingApp extends JFrame {
 	}
 
 	public void createDb() {
-		System.out.println(new File(dbPos).exists());
-		deleteFolder(new File(dbPos));
-		System.out.println(new File(dbPos).exists());
-		if (!new File(dbPos).exists()) {
+		System.out.println(new File(SysConfiguration.dbName).exists());
+		deleteFolder(new File(SysConfiguration.dbName));
+		System.out.println(new File(SysConfiguration.dbName).exists());
+		if (!new File(SysConfiguration.dbName).exists()) {
 			Connection con = null;
 			Statement sta = null;
 			Scanner scanner = null;
@@ -551,14 +616,19 @@ public class DBSettingApp extends JFrame {
 			// TODO Auto-generated catch block
 			ex.printStackTrace();
 		} finally {
+
 			try {
-				cs.close();
+				if (cs != null) {
+					cs.close();
+				}
 			} catch (SQLException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
 			try {
-				con.close();
+				if (con != null) {
+					con.close();
+				}
 			} catch (SQLException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
@@ -571,16 +641,27 @@ public class DBSettingApp extends JFrame {
 	public void restoreDb() {
 
 		Connection con = null;
-		CallableStatement cs = null;
+		DatabaseMetaData dbmd = null ;
 
 		String url = SysConfiguration.dbUrl;
-		url += ";restoreFrom=" + backupDbPos + "minerlampdb";
+		url += ";restoreFrom=" + backupDbPos;
+	//	url += ";createFrom=" + backupDbPos;
+		System.out.println(" restore url="+url);
 		try {
 			Class.forName(driver);
 			con = DriverManager.getConnection(url, null, null);
-			if (!con.isClosed()) {
+			dbmd = con.getMetaData() ;
+
+			System.out.println("\n----------------------------------------------------") ;
+			System.out.println("Database Name    = " + dbmd.getDatabaseProductName()) ;
+			System.out.println("Database Version = " + dbmd.getDatabaseProductVersion()) ;
+			System.out.println("Driver Name      = " + dbmd.getDriverName()) ;
+			System.out.println("Driver Version   = " + dbmd.getDriverVersion()) ;
+			System.out.println("Database URL     = " + dbmd.getURL()) ;
+			System.out.println("----------------------------------------------------") ;
 				errMsg = "数据库还原成功";
-			}
+			
+			
 		} catch (SQLException e1) {
 			System.out.println("sqlErrMsg=" + e1.getMessage());
 
@@ -596,15 +677,18 @@ public class DBSettingApp extends JFrame {
 		} catch (ClassNotFoundException ex) {
 			// TODO Auto-generated catch block
 			ex.printStackTrace();
-		} finally {
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			
 			try {
-				cs.close();
-			} catch (SQLException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-			try {
-				con.close();
+				if (con != null) {
+					con.close();
+					con=null;
+					System.gc();
+				}
 			} catch (SQLException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
@@ -616,12 +700,14 @@ public class DBSettingApp extends JFrame {
 
 	private void deleteFolder(File dir) {
 		File filelist[] = dir.listFiles();
-		int listlen = filelist.length;
-		for (int i = 0; i < listlen; i++) {
-			if (filelist[i].isDirectory()) {
-				deleteFolder(filelist[i]);
-			} else {
-				filelist[i].delete();
+		if (filelist != null) {
+			int listlen = filelist.length;
+			for (int i = 0; i < listlen; i++) {
+				if (filelist[i].isDirectory()) {
+					deleteFolder(filelist[i]);
+				} else {
+					filelist[i].delete();
+				}
 			}
 		}
 		dir.delete();
