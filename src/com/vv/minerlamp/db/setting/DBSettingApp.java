@@ -105,6 +105,27 @@ public class DBSettingApp extends JFrame {
 					showInfoMsg();
 				}
 			});
+			JButton createSysBtn = new JButton("创建数据库*");
+			createSysBtn.addActionListener(new ActionListener() {
+
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					int selection = JOptionPane.showConfirmDialog(
+							DBSettingApp.this, "该操作会删除原先的数据库，确定要创建数据库吗", "提示",
+							JOptionPane.YES_NO_OPTION);
+
+					if (selection == JOptionPane.YES_OPTION) {
+						infoList.clear();
+						infoList.add("创建数据库");
+
+						showInfoMsg();
+						createSysDb();
+						showInfoMsg();
+
+					}
+
+				}
+			});
 			JButton createBtn = new JButton("创建数据库");
 			createBtn.addActionListener(new ActionListener() {
 
@@ -236,6 +257,7 @@ public class DBSettingApp extends JFrame {
 			btnPanel.add(createBtn, new GBC(0, 1).setInsets(0, 0, 10, 0));
 			btnPanel.add(backupBtn, new GBC(0, 2).setInsets(0, 0, 10, 0));
 			btnPanel.add(restoreBtn, new GBC(0, 3).setInsets(0, 0, 10, 0));
+			btnPanel.add(createSysBtn, new GBC(0, 4).setInsets(0, 0, 10, 0));
 			JPanel infoPanel = new JPanel();
 			infoPanel.setBorder(BorderFactory.createTitledBorder("信息"));
 			infoLabel = new JLabel("<html>数据库管理</html>");
@@ -522,7 +544,7 @@ public class DBSettingApp extends JFrame {
 		return result;
 	}
 
-	public void createDb() {
+	public void createSysDb() {
 		System.out.println(new File(SysConfiguration.dbName).exists());
 		deleteFolder(new File(SysConfiguration.dbName));
 		System.out.println(new File(SysConfiguration.dbName).exists());
@@ -584,7 +606,70 @@ public class DBSettingApp extends JFrame {
 		}
 		infoList.add(errMsg);
 	}
+	public void createDb() {
+		System.out.println(new File(SysConfiguration.dbName).exists());
+		deleteFolder(new File(SysConfiguration.dbName));
+		System.out.println(new File(SysConfiguration.dbName).exists());
+		if (new File(SysConfiguration.dbName).exists()) {
+			return;
+		}
+		Connection con = null;
+		DatabaseMetaData dbmd = null ;
 
+		String url = SysConfiguration.dbUrl;
+		url += ";restoreFrom=" + SysConfiguration.dbInitPos;
+	//	url += ";createFrom=" + backupDbPos;
+		System.out.println(" restore url="+url);
+		try {
+			Class.forName(driver);
+			con = DriverManager.getConnection(url, null, null);
+			dbmd = con.getMetaData() ;
+
+			System.out.println("\n----------------------------------------------------") ;
+			System.out.println("Database Name    = " + dbmd.getDatabaseProductName()) ;
+			System.out.println("Database Version = " + dbmd.getDatabaseProductVersion()) ;
+			System.out.println("Driver Name      = " + dbmd.getDriverName()) ;
+			System.out.println("Driver Version   = " + dbmd.getDriverVersion()) ;
+			System.out.println("Database URL     = " + dbmd.getURL()) ;
+			System.out.println("----------------------------------------------------") ;
+				errMsg = "数据库创建成功";
+			
+			
+		} catch (SQLException e1) {
+			System.out.println("sqlErrMsg=" + e1.getMessage());
+
+			e1.printStackTrace();
+			String em = e1.getMessage();
+			if (em.contains("未找到")) {
+				errMsg = "初始数据库不存在";
+			} else if (em.contains("无法使用类加载器")) {
+				errMsg = "连接失败，请先关闭其他程序";
+			} else {
+				errMsg = "数据库连接失败,请检查数据库配置是否正确";
+			}
+		} catch (ClassNotFoundException ex) {
+			// TODO Auto-generated catch block
+			ex.printStackTrace();
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			
+			try {
+				if (con != null) {
+					con.close();
+					con=null;
+					System.gc();
+				}
+			} catch (SQLException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+		}
+
+		infoList.add(errMsg);
+	}
 	public void backupDb() {
 
 		Connection con = null;

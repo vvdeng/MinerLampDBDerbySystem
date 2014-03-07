@@ -13,6 +13,7 @@ public class SysConfiguration {
 	public static String dbUserName;
 	public static String dbPwd;
 	public static String dbName="";
+	public static String dbInitPos="";
 	public static String backupFileName="智能管理系统数据备份.dat";
 	
 	public static void init() {
@@ -23,8 +24,10 @@ public class SysConfiguration {
 		dbUserName = dbProps.get("hibernate.connection.username").toString();
 		dbPwd = dbProps.get("hibernate.connection.password").toString();
 		parseDbName(dbUrl);
-		System.out.println("dbName="+dbName);
 		
+		dbProps = PropertiesUtil.getProperties("init.properties");
+		dbInitPos=dbProps.getProperty("dbInitPos").toString();
+		System.out.println("dbInitPos="+dbInitPos);
 	}
 
 	public static void parse( String url) {
