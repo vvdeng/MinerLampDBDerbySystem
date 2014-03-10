@@ -7,7 +7,7 @@ create table led_setting(id bigint primary key,content varchar(200),display int)
 create table lamp_change_log(id bigint generated always as identity primary key,rack_id bigint,lamp_no bigint,work_id bigint,staff_name varchar(20),change_time bigint,operation int);
 CREATE table charging_log(id BIGINT generated always as identity PRIMARY KEY,work_id BIGINT,NAME VARCHAR(20),rack_id BIGINT,lamp_no BIGINT,profession VARCHAR(20),department VARCHAR(20),clazz_id BIGINT,clazz VARCHAR(20),underground_begintime bigint,underground_endtime bigint,old_state int,new_state int, action int,description VARCHAR(200),last_update_time bigint ,clazz_day char(10)); 
 create table rack_statistics(id bigint  primary key,idle_count bigint,charging_count bigint default 0,underground_count bigint default 0,error_count bigint default 0,full_count bigint default 0);
-create table sysinf(id bigint primary key generated always as identity,cat int ,val int ,descr varchar(20));
+create table sysinf(id bigint primary key generated always as identity,cat int ,val int ,descr varchar(50));
 insert into usr(name,pwd,priv) values('admin','admin',1);
 insert into info_item(name,type,value) values( '教育程度',0,'高中');
 insert into info_item(name,type,value) values( '教育程度',0,'专科');
